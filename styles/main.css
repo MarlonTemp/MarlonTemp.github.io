@@ -1,0 +1,59 @@
+html {
+    background-color: rgb(255, 249, 228);
+    height: 100%;
+}
+
+.mainflex {
+    background-color: rgb(255, 249, 228);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.subflex {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+section {
+    background-color: rgb(242, 235, 226);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border-style: solid;
+    border-color: gray;
+    border-width: 0.2rem;
+    text-align: center;
+    color: black;
+}
+
+header {
+    border-bottom: 0.1rem solid gray;
+    padding: 0rem 0.5rem;
+}
+
+header h1 {
+    font-size: 2rem;
+}
+
+main {
+    padding: 1rem;
+}
+
+footer {
+    background-image: linear-gradient(180deg, darkblue, rgb(40, 0, 139));
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    height: 100%;
+    border-style: solid;
+    border-color: darkblue;
+    border-width: 0.5rem;
+    border-radius: 1rem;
+}
+
+canvas {
+    border: 0.2rem solid gray;
+    border-radius: 0.5rem;
+    background-color: white;
+}
