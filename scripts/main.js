@@ -1,3 +1,6 @@
+import * as cd from './CORDIC.js';
+
+
 // Settings
 const REFRESH_RATE = 16; // Refresh rate in milliseconds
 console.log(1000 / REFRESH_RATE + "FPS"); // Log the refresh rate in seconds
@@ -13,101 +16,6 @@ const ctx = canvas.getContext('2d');
 let canvasDimensions = canvas.getBoundingClientRect(); 
 let canvWidth = canvasDimensions.width;
 let canvHeight = canvasDimensions.height;
-
-
-// **************** CORDIC DEMO FUNCTIONS ****************
-
-function getAtanAngles(iterations) {
-    let angles = [];
-
-    for (let i = 0; i < iterations; i++) {
-        angles[i] = Math.atan(Math.pow(2, -i)); // angles in radians
-    }
-
-    return angles;
-}
-
-function getCosK(iterations) {
-    let angles = getAtanAngles(iterations);
-    let cosK = 1;
-
-    for (let i = 0; i < iterations; i++) {
-        cosK *= Math.cos(angles[i]);
-    }
-
-    return cosK;
-}
-
-function getSinCosDegrees(angle, iterations) {
-    let xi = 1;
-    let yi = 0;
-    let totalAngle = 0;
-    let angles = getAtanAngles(iterations);
-    let cosK = getCosK(iterations);
-    let xd = 1; //direction (1 for positive, -1 for negative)
-    let yd = 1;
-    let targetAngle = angle % 360;
-    
-    if (targetAngle < 0) {
-        targetAngle += 360;
-    }
-
-    if (targetAngle > 180) {
-        targetAngle -= 180;
-        yd = -1;
-        xd = -1;
-    }
-
-    if (targetAngle > 90) {
-        xd *= -1;
-        targetAngle = 180 - targetAngle;
-    } 
-
-    if (targetAngle > 90) {
-        targetAngle = 180 - targetAngle;
-        xd = -1;
-    }
-
-    targetAngle = targetAngle * (Math.PI / 180); // convert to radians
-
-    for (let i = 0; i < iterations; i++) {
-        if (totalAngle < targetAngle) {
-            totalAngle += angles[i];
-            let xj = xi - (yi * (Math.pow(2, -i)));
-            let yj = yi + (xi * (Math.pow(2, -i)));
-            xi = xj;
-            yi = yj;
-        }
-        else {
-            totalAngle -= angles[i];
-            let xj = xi + (yi * (Math.pow(2, -i)));
-            let yj = yi - (xi * (Math.pow(2, -i)));
-            xi = xj;
-            yi = yj;
-        }
-    }
-
-    return [cosK * xi * xd, cosK * yi * yd];
-
-}
-
-function getSinCos(angle, iterations, angleType = 'degrees') {
-    if (angleType === 'degrees') {
-        return getSinCosDegrees(angle, iterations);
-    } else if (angleType === 'radians') {
-        return getSinCosDegrees(angle * (180 / Math.PI), iterations);
-    } else {
-        throw new Error('Invalid angle type. Use "degrees" or "radians".');
-    }
-}
-
-
-console.log(getAtanAngles(10));
-console.log(getCosK(10));
-console.log(-80 % 360);
-console.log(getSinCos(45, 5));
-console.log(canvas.getBoundingClientRect());
-
 
 // **************** CANVAS FUNCTIONS ****************
 
@@ -219,9 +127,19 @@ function test() {
 
 }
 
+// ANIMATION
+
+function animSmoothingFunction(progress) {
+    return progress * (2 - progress);
+}
+
 
 // Main loop
 let angle = 0;
+let startAnim = false;
+let animProgress = 0; // from 0 to 1
+let initAngle = 0;
+let targetAngle = 3;
 
 function loop() {
     ctx.clearRect(0, 0, canvWidth, canvHeight); // Clear the canvas
@@ -230,11 +148,21 @@ function loop() {
     drawGrid(canvas, 0, 'black'); // Draw the main grid lines
     drawRadius(canvas, angle, 'red', 2); 
     
-
     drawRadiusToPoint(canvas, [1,1]);
+    
+    if (startAnim) {
+        animProgress += ANIM_SPEED * ANIM_ANGLE_INC;
+        if (animProgress >= 1) {
+            animProgress = 0;
+            startAnim = false;
+        }
+
+        curAngle = (targetAngle * animSmoothingFunction(animProgress)) + initAngle; 
+        drawRadius(canvas, curAngle, 'red', 2);
+    }
+
+
     drawCircleAtCentre(canvas, 'darkblue', 2);
-
-
     angle += ANIM_SPEED * ANIM_ANGLE_INC; // Animation angle
 }
 

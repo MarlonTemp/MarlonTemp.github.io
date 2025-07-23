@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles/reset.css" type="text/css">
     <link rel="stylesheet" href="styles/main.css" type="text/css">
-    <script src="scripts/main.js" defer></script>
+    <script type="module" src="scripts/CORDIC.js" defer></script>
+    <script type="module" src="scripts/main.js" defer></script>
 
     <title>Testing Canvas</title>
 </head>
@@ -17,6 +18,39 @@
         <main>
             <section id="canvasParent">
                 <canvas id="canvas" width="400" height="450" alt="Canvas for CORDIC demonstration of sin, cos and arctan">CORDIC trigonometry demonstration</canvas>
+                <form id="canvasForm">
+                    <label for="angleInput">Angle (degrees):</label>
+                    <input type="range" id="targetAngle" value="45" min="0" max="360" step="1" list="angleList">
+                    <datalist id="angleList">
+                        <option value="0"></option>
+                        <option value="15"></option>
+                        <option value="30"></option>
+                        <option value="45"></option>
+                        <option value="60"></option>
+                        <option value="75"></option>
+                        <option value="90"></option>
+                        <option value="105"></option>
+                        <option value="120"></option>
+                        <option value="135"></option>
+                        <option value="150"></option>
+                        <option value="165"></option>
+                        <option value="180"></option>
+                        <option value="195"></option>
+                        <option value="210"></option>
+                        <option value="225"></option>
+                        <option value="240"></option>
+                        <option value="255"></option>
+                        <option value="270"></option>
+                        <option value="285"></option>
+                        <option value="300"></option>
+                        <option value="315"></option>
+                        <option value="330"></option>
+                        <option value="345"></option>
+                        <option value="360"></option>
+                    </datalist>
+                    <br>
+                    <button id="startAnim">Start Animation</button>
+                </form>
             </section>
         </main>
     </div>
