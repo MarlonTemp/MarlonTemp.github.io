@@ -74,6 +74,10 @@ export function getSinCosDegrees(angle, iterations) {
 
 }
 
+export function getSinCosUsedAngles(angle, iterations) {
+    
+}
+
 export function getSinCos(angle, iterations, angleType = 'degrees') {
     if (angleType === 'degrees') {
         return getSinCosDegrees(angle, iterations);

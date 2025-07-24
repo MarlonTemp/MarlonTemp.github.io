@@ -1,4 +1,4 @@
-import * as cd from './CORDIC.js';
+//import * as cd from './CORDIC.js';
 
 
 // Settings
@@ -199,15 +199,24 @@ class RadiusAnimation {
         this.color = color;
     }
 
+    getCurAngle() {
+        return (this.targetAngle * animSmoothingFunction(this.animProgress)) + this.startAngle;
+    }
+
     loop() {
         if (this.animProgress >= 1) {
             this.animCompleted = true;
         }
         else {
             this.animProgress += this.speed * ANIM_ANGLE_INC;
-            let curAngle = (this.targetAngle * animSmoothingFunction(this.animProgress)) + this.startAngle;
+            let curAngle = this.getCurAngle();
             drawRadius(this.canv, curAngle, this.color, 2);
         }
+    }
+
+    draw() {
+        let curAngle = this.getCurAngle();
+        drawRadius(this.canv, curAngle, this.color, 2);
     }
 
     resetAnim() {
@@ -235,9 +244,14 @@ class CircleAnimation extends RadiusAnimation {
             this.animCompleted = true;
         } else {
             this.animProgress += this.speed * ANIM_ANGLE_INC;
-            let curAngle = ((this.targetAngle - this.startAngle) * animSmoothingFunction(this.animProgress)) + this.startAngle;
+            let curAngle = this.getCurAngle();
             drawCircleAtCentre(this.canv, this.color, 2, this.startAngle, curAngle, this.size, this.anticlockwise);
         }
+    }
+
+    draw() {
+        let curAngle = this.getCurAngle();
+        drawCircleAtCentre(this.canv, this.color, 2, this.startAngle, curAngle, this.size, this.anticlockwise);
     }
 }
 
@@ -268,6 +282,12 @@ class AnimGroup {
         }
     }
 
+    draw() {
+        for (let i = 0; i < this.animations.length; i++) {
+            this.animations[i].draw();
+        }
+    }
+
     resetAnim() {
         for (let i = 0; i < this.animations.length; i++) {
             this.animations[i].resetAnim();
@@ -291,6 +311,12 @@ class AnimManager {
         }
     }
 
+    drawManager() {
+        if (this.queuedAnims.length > 0) {
+            this.queuedAnims[0].draw();
+        }
+    }
+
     addAnim(anim) {
         anim.resetAnim(); 
         this.queuedAnims.push(anim);
@@ -308,7 +334,13 @@ function beginAnim(event) {
     animManager.queuedAnims.push(anim);
 }
 
+function pauseAnim(event) {
+    event.preventDefault(); 
+    paused = !paused;
+}
+
 document.getElementById("startAnimBtn").addEventListener("click", beginAnim);
+document.getElementById("pauseBtn").addEventListener("click", pauseAnim);
 
 // ************* END BUTTONS ***************
 
@@ -316,6 +348,7 @@ document.getElementById("startAnimBtn").addEventListener("click", beginAnim);
 
 let staticDrawer = new StaticDrawing([]);
 let animManager = new AnimManager();
+let paused = false;
 
 // TESTING
 let angle = 0;
@@ -350,13 +383,18 @@ function loop() {
 
     drawCircleAtCentre(canvas, 'darkgreen', 2, 0, Math.PI * 2); // Draw the circle with the current angle
     drawCircleAtCentre(canvas, 'blue', 2, 0, angle % (2 * Math.PI)); // Draw the circle with the current angle
-    angle += ANIM_SPEED * ANIM_ANGLE_INC; // Animation angle
-
-    animManager.loopManager();
+    
+    if (!paused) {
+        angle += ANIM_SPEED * ANIM_ANGLE_INC; // Animation angle
+        animManager.loopManager();
+    }
+    else {
+        animManager.drawManager(); 
+    }
+    
 }
 
 // ************** TESTING **************
-
 let testInitAngle = 0;
 let testTargetAngle = Math.PI * 1.5;
 let testSpeed = 0.5;
