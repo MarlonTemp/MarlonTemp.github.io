@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="styles/reset.css" type="text/css">
     <link rel="stylesheet" href="styles/main.css" type="text/css">
     <script type="module" src="scripts/CORDIC.js" defer></script>
-    <script src="scripts/main.js" defer></script>
+    <script type="module" src="scripts/main.js" defer></script>
 
     <title>Testing Canvas</title>
 </head>
@@ -19,7 +19,8 @@
             <section id="canvasParent">
                 <canvas id="canvas" width="400" height="450" alt="Canvas for CORDIC demonstration of sin, cos and arctan">CORDIC trigonometry demonstration</canvas>
                 <form id="canvasForm">
-                    <label for="angleInput">Angle (degrees):</label>
+                    <label for="angleInput">Angle (degrees)</label>
+                    <br>
                     <input type="range" id="targetAngle" value="45" min="0" max="360" step="1" list="angleList">
                     <datalist id="angleList">
                         <option value="0"></option>

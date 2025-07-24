@@ -1,4 +1,4 @@
-//import * as cd from './CORDIC.js';
+import * as cd from './CORDIC.js';
 
 
 // Settings
@@ -8,9 +8,9 @@ const CIRCLE_RAD_SIZE = 0.45; // Circle radius size as a fraction of the canvas 
 const GRID_FREQUENCY = 10; // How many lines per unit in the grid
 const ANIM_SPEED = 1; // Speed of animation (avoid multiples of 2 for high numbers)
 const ANIM_ANGLE_INC = Math.PI / 128; // Angle increment for animation in radians
+const DEFAULT_LINE_THICKNESS = 2; // Default line thickness for drawing
 
-
-// Global canvas variables (used mainly for testing and loop only)
+// Global canvas variables (used for testing and loop only)
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d'); 
 let canvasDimensions = canvas.getBoundingClientRect(); 
@@ -29,6 +29,7 @@ function resizeCanvas() {
     canvHeight = canvasDimensions.height;
 }
 
+// Rectangle drawn from centre of canvas
 function drawRectAtCentre(canv, coord, dimensions, color = 'black') {
     let ctx = canv.getContext('2d');
     ctx.fillStyle = color;
@@ -37,7 +38,7 @@ function drawRectAtCentre(canv, coord, dimensions, color = 'black') {
 
 // CIRCLES
 
-function drawCircleAtCentre(canv, color = 'black', lineWidth = 1, startAngle = 0, targetAngle = 2 * Math.PI, size = 1, anticlockwise = true) {
+function drawCircleAtCentre(canv, color = 'black', lineWidth = DEFAULT_LINE_THICKNESS, startAngle = 0, targetAngle = 2 * Math.PI, size = 1, anticlockwise = true) {
     const canvCtx = canv.getContext('2d');
     let canvWidth = canv.width;
     let canvHeight = canv.height;
@@ -46,11 +47,13 @@ function drawCircleAtCentre(canv, color = 'black', lineWidth = 1, startAngle = 0
     canvCtx.lineWidth = lineWidth;
     
     canvCtx.beginPath();
+    // Angles are negative so circle is drawn anticlockwise, and top quadrants are positive
     canvCtx.arc(canvWidth / 2, canvHeight / 2, radius, -startAngle, -targetAngle, anticlockwise);
     canvCtx.stroke();
 }
 
-function drawRadius(canv, angle, color = 'red', lineWidth = 2) {
+// Draw radius form centre of canvas to circumference of circle of set size at a speicificd angle
+function drawRadius(canv, angle, color = 'red', lineWidth = DEFAULT_LINE_THICKNESS) {
     const canvCtx = canv.getContext('2d');
     let canvWidth = canv.width;
     let canvHeight = canv.height;
@@ -70,7 +73,8 @@ function drawRadius(canv, angle, color = 'red', lineWidth = 2) {
     canvCtx.stroke();
 }
 
-function drawRadiusToPoint(canv, point, color = 'red', lineWidth = 2) {
+// Draws radius using point instead of angle. Point is an array [x, y]
+function drawRadiusToPoint(canv, point, color = 'red', lineWidth = DEFAULT_LINE_THICKNESS) {
     let angle = Math.atan(point[1]/point[0]);
 
     drawRadius(canv, angle, color, lineWidth);
@@ -79,7 +83,9 @@ function drawRadiusToPoint(canv, point, color = 'red', lineWidth = 2) {
 // END CIRCLES
 
 // Draws a grid centred at the canvas centre
-function drawGrid(canv, gridFrequency = 1 /* How many lines per unit */, color = 'lightgray') {
+// Grid frequency is number of lines per unit
+// Where unit is default radius length 
+function drawGrid(canv, gridFrequency = 1, color = 'lightgray') {
     let canvCtx = canv.getContext('2d');
     let canvWidth = canv.width;
     let canvHeight = canv.height;
@@ -115,6 +121,9 @@ function drawGrid(canv, gridFrequency = 1 /* How many lines per unit */, color =
     canvCtx.stroke();
 }
 
+
+// TESTING RECTANGLES
+// DELETE AFTERWARDS
 function test() {
     canvWidth = canvas.width;
     canvHeight = canvas.height;
@@ -127,12 +136,51 @@ function test() {
 
 }
 
-// ANIMATION
+// ******** STATIC DRAWINGS ********
+
+class Radius {
+    angle;
+    color;
+    lineWidth;
+
+    constructor(angle, color = 'black', lineWidth = 2) {
+        this.angle = angle;
+        this.color = color;
+        this.lineWidth = lineWidth;
+    }
+
+    draw(canv) {
+        drawRadius(canv, this.angle, this.color, this.lineWidth);
+    }
+}
+
+class StaticDrawing {
+    drawings = [];
+
+    constructor(drawings = []) {
+        this.drawings = drawings; // Array of functions that draw on the canvas
+    }
+
+    draw(canv) {
+        for (let i = 0; i < this.drawings.length; i++) {
+            this.drawings[i].draw(canv);
+        }
+    }
+
+    addDrawing(drawing) {
+        this.drawings.push(drawing);
+    }
+
+    clearDrawings() {
+        this.drawings = [];
+    }
+}
+
+// *********** ANIMATION ***********
 
 function animSmoothingFunction(progress) {
     return progress * (2 - progress);
 }
-
 
 // Have this animation extend a base animation class
 class RadiusAnimation {
@@ -203,20 +251,20 @@ class AnimGroup {
     }
 
     loop() {
-        let completedFlag = true; // Flag to check if all animations are completed
+        let completedFlag = true; 
         
         if (this.animations.length === 0) {
-            this.animCompleted = true; // Mark the group as completed if no animations are left
+            this.animCompleted = true; 
             return;
         }
         for (let i = 0; i < this.animations.length; i++) {
             this.animations[i].loop();
             if (!this.animations[i].animCompleted) {
-                completedFlag = false; // If any animation is not completed, set the flag to false
+                completedFlag = false; 
             }
         }
         if (completedFlag) {
-            this.animCompleted = true; // If all animations are completed, mark the group as completed
+            this.animCompleted = true; 
         }
     }
 
@@ -224,56 +272,70 @@ class AnimGroup {
         for (let i = 0; i < this.animations.length; i++) {
             this.animations[i].resetAnim();
         }
-        this.animCompleted = false; // Reset the group completion status
+        this.animCompleted = false; 
     }
 }
 
+// Processes animations in a queue
 class AnimManager {
-    static queuedAnims = [];
-    static loopManager() {
-        
+    queuedAnims = [];
+
+    loopManager() {
         if (this.queuedAnims.length > 0) {
             console.log(this.queuedAnims);
             this.queuedAnims[0].loop();
             if (this.queuedAnims[0].animCompleted) {
-                this.queuedAnims.splice(0, 1); // Remove the completed animation
+                this.queuedAnims.splice(0, 1);
                 
             }
         }
     }
 
-    static addAnim(anim) {
+    addAnim(anim) {
         anim.resetAnim(); 
         this.queuedAnims.push(anim);
         console.log(this.queuedAnims[0]);
     }
 }
+// *********** END ANIMATIONS ***********
 
-// Button and event listeners
+
+// ********* BUTTONS AND EVENTS *********
 
 function beginAnim(event) {
     event.preventDefault(); // Prevent form submission
     let anim = new RadiusAnimation(canvas, initAngle, targetAngle, ANIM_SPEED);
-    AnimManager.queuedAnims.push(anim);
+    animManager.queuedAnims.push(anim);
 }
 
 document.getElementById("startAnimBtn").addEventListener("click", beginAnim);
 
-// END BUTTONS
+// ************* END BUTTONS ***************
 
 // Main loop
+
+let staticDrawer = new StaticDrawing([]);
+let animManager = new AnimManager();
+
+// TESTING
 let angle = 0;
 let startAnim = false;
 let animProgress = 0; // from 0 to 1
 let initAngle = 0;
 let targetAngle = 3;
 
+staticDrawer.addDrawing(new Radius(Math.PI / 4, 'black', 2));
+
+// END TESTING
+
 function loop() {
     ctx.clearRect(0, 0, canvWidth, canvHeight); // Clear the canvas
     resizeCanvas();
     drawGrid(canvas, GRID_FREQUENCY, 'lightgray'); // Draw the grid
     drawGrid(canvas, 0, 'black'); // Draw the main grid lines
+    staticDrawer.draw(canvas); // Draw static drawings
     drawRadius(canvas, angle, 'red', 2); 
+
     
     if (startAnim) {
         animProgress += ANIM_SPEED * ANIM_ANGLE_INC;
@@ -286,24 +348,25 @@ function loop() {
         drawRadius(canvas, curAngle, 'red', 2);
     }
 
-    
-
     drawCircleAtCentre(canvas, 'darkgreen', 2, 0, Math.PI * 2); // Draw the circle with the current angle
     drawCircleAtCentre(canvas, 'blue', 2, 0, angle % (2 * Math.PI)); // Draw the circle with the current angle
     angle += ANIM_SPEED * ANIM_ANGLE_INC; // Animation angle
 
-    AnimManager.loopManager();
+    animManager.loopManager();
 }
+
+// ************** TESTING **************
 
 let testInitAngle = 0;
 let testTargetAngle = Math.PI * 1.5;
 let testSpeed = 0.5;
-let testAnim1 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "yellow");
-let testAnim2 = new RadiusAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "yellow");
-let testAnim3 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "yellow", 0.1);
+let testAnim1 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "red");
+let testAnim2 = new RadiusAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "red");
+let testAnim3 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "red", 0.1);
 
 let testAnimGroup = new AnimGroup([testAnim1, testAnim2, testAnim3]);
-let testAnimGroup2 = new AnimGroup([testAnim1, testAnim2, testAnim3]);
-AnimManager.addAnim(testAnimGroup);
+animManager.addAnim(testAnimGroup);
+
+// ************** END TESTING **************
 
 setInterval(loop, REFRESH_RATE);
