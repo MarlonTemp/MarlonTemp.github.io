@@ -160,7 +160,11 @@ class RadiusAnimation {
             let curAngle = (this.targetAngle * animSmoothingFunction(this.animProgress)) + this.startAngle;
             drawRadius(this.canv, curAngle, this.color, 2);
         }
-    
+    }
+
+    resetAnim() {
+        this.animProgress = 0; 
+        this.animCompleted = false; 
     }
 }
 
@@ -183,34 +187,49 @@ class CircleAnimation extends RadiusAnimation {
             this.animCompleted = true;
         } else {
             this.animProgress += this.speed * ANIM_ANGLE_INC;
-            let curAngle = (this.targetAngle * animSmoothingFunction(this.animProgress)) + this.startAngle;
+            let curAngle = ((this.targetAngle - this.startAngle) * animSmoothingFunction(this.animProgress)) + this.startAngle;
             drawCircleAtCentre(this.canv, this.color, 2, this.startAngle, curAngle, this.size, this.anticlockwise);
         }
     }
 }
 
+// Group of animations that are completed simultaneously
 class AnimGroup {
     animations = [];
+    animCompleted = false;
 
     constructor(animations) {
         this.animations = animations;
     }
 
     loop() {
+        let completedFlag = true; // Flag to check if all animations are completed
+        
+        if (this.animations.length === 0) {
+            this.animCompleted = true; // Mark the group as completed if no animations are left
+            return;
+        }
         for (let i = 0; i < this.animations.length; i++) {
             this.animations[i].loop();
-            if (this.animations[i].animCompleted) {
-                this.animations.splice(i, 1); // Remove the completed animation
-                i--; // Adjust index after removal
+            if (!this.animations[i].animCompleted) {
+                completedFlag = false; // If any animation is not completed, set the flag to false
             }
         }
+        if (completedFlag) {
+            this.animCompleted = true; // If all animations are completed, mark the group as completed
+        }
+    }
+
+    resetAnim() {
+        for (let i = 0; i < this.animations.length; i++) {
+            this.animations[i].resetAnim();
+        }
+        this.animCompleted = false; // Reset the group completion status
     }
 }
 
 class AnimManager {
     static queuedAnims = [];
-
-
     static loopManager() {
         
         if (this.queuedAnims.length > 0) {
@@ -224,7 +243,9 @@ class AnimManager {
     }
 
     static addAnim(anim) {
+        anim.resetAnim(); 
         this.queuedAnims.push(anim);
+        console.log(this.queuedAnims[0]);
     }
 }
 
@@ -273,5 +294,16 @@ function loop() {
 
     AnimManager.loopManager();
 }
+
+let testInitAngle = 0;
+let testTargetAngle = Math.PI * 1.5;
+let testSpeed = 0.5;
+let testAnim1 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "yellow");
+let testAnim2 = new RadiusAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "yellow");
+let testAnim3 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "yellow", 0.1);
+
+let testAnimGroup = new AnimGroup([testAnim1, testAnim2, testAnim3]);
+let testAnimGroup2 = new AnimGroup([testAnim1, testAnim2, testAnim3]);
+AnimManager.addAnim(testAnimGroup);
 
 setInterval(loop, REFRESH_RATE);
