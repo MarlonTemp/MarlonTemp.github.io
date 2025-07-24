@@ -6,7 +6,7 @@ const REFRESH_RATE = 16; // Refresh rate in milliseconds
 console.log(1000 / REFRESH_RATE + "FPS"); // Log the refresh rate in seconds
 const CIRCLE_RAD_SIZE = 0.45; // Circle radius size as a fraction of the canvas size
 const GRID_FREQUENCY = 10; // How many lines per unit in the grid
-const ANIM_SPEED = 1; // Speed of animation (avoid multiples of 2 for high numbers)
+const DEFAULT_ANIM_SPEED = 1; // Speed of animation (avoid multiples of 2 for high numbers)
 const ANIM_ANGLE_INC = Math.PI / 128; // Angle increment for animation in radians
 const DEFAULT_LINE_THICKNESS = 2; // Default line thickness for drawing
 
@@ -187,15 +187,13 @@ class RadiusAnimation {
     canv;
     startAngle;
     targetAngle;
-    speed;
     animProgress = 0;
     animCompleted = false;
 
-    constructor(canv, startAngle, targetAngle, speed, color = 'black') {
+    constructor(canv, startAngle, targetAngle, color = 'black') {
         this.canv = canv;
         this.startAngle = startAngle;
         this.targetAngle = targetAngle;
-        this.speed = speed;
         this.color = color;
     }
 
@@ -203,12 +201,12 @@ class RadiusAnimation {
         return (this.targetAngle * animSmoothingFunction(this.animProgress)) + this.startAngle;
     }
 
-    loop() {
+    loop(speed = DEFAULT_ANIM_SPEED) {
         if (this.animProgress >= 1) {
             this.animCompleted = true;
         }
         else {
-            this.animProgress += this.speed * ANIM_ANGLE_INC;
+            this.animProgress += speed * ANIM_ANGLE_INC;
             let curAngle = this.getCurAngle();
             drawRadius(this.canv, curAngle, this.color, 2);
         }
@@ -230,8 +228,8 @@ class CircleAnimation extends RadiusAnimation {
     size;
     anticlockwise;
 
-    constructor(canv, startAngle, targetAngle, speed, color = "black", size = 1, anticlockwise = true) {
-        super(canv, startAngle, targetAngle, speed, color);
+    constructor(canv, startAngle, targetAngle, color = "black", size = 1, anticlockwise = true) {
+        super(canv, startAngle, targetAngle, color);
         this.size = size;
         this.anticlockwise = anticlockwise;
         if (this.anticlockwise == false) {
@@ -239,11 +237,11 @@ class CircleAnimation extends RadiusAnimation {
         }
     }
 
-    loop() {
+    loop(speed = DEFAULT_ANIM_SPEED) {
         if (this.animProgress >= 1) {
             this.animCompleted = true;
         } else {
-            this.animProgress += this.speed * ANIM_ANGLE_INC;
+            this.animProgress += speed * ANIM_ANGLE_INC;
             let curAngle = this.getCurAngle();
             drawCircleAtCentre(this.canv, this.color, 2, this.startAngle, curAngle, this.size, this.anticlockwise);
         }
@@ -264,15 +262,15 @@ class AnimGroup {
         this.animations = animations;
     }
 
-    loop() {
-        let completedFlag = true; 
-        
+    loop(speed = DEFAULT_ANIM_SPEED) {
+        let completedFlag = true;
+
         if (this.animations.length === 0) {
             this.animCompleted = true; 
             return;
         }
         for (let i = 0; i < this.animations.length; i++) {
-            this.animations[i].loop();
+            this.animations[i].loop(speed);
             if (!this.animations[i].animCompleted) {
                 completedFlag = false; 
             }
@@ -300,13 +298,11 @@ class AnimGroup {
 class AnimManager {
     queuedAnims = [];
 
-    loopManager() {
+    loopManager(speed = DEFAULT_ANIM_SPEED) {
         if (this.queuedAnims.length > 0) {
-            console.log(this.queuedAnims);
-            this.queuedAnims[0].loop();
+            this.queuedAnims[0].loop(speed);
             if (this.queuedAnims[0].animCompleted) {
                 this.queuedAnims.splice(0, 1);
-                
             }
         }
     }
@@ -320,7 +316,6 @@ class AnimManager {
     addAnim(anim) {
         anim.resetAnim(); 
         this.queuedAnims.push(anim);
-        console.log(this.queuedAnims[0]);
     }
 }
 // *********** END ANIMATIONS ***********
@@ -330,7 +325,8 @@ class AnimManager {
 
 function beginAnim(event) {
     event.preventDefault(); // Prevent form submission
-    let anim = new RadiusAnimation(canvas, initAngle, targetAngle, ANIM_SPEED);
+    paused = false;
+    let anim = new RadiusAnimation(canvas, initAngle, targetAngle);
     animManager.queuedAnims.push(anim);
 }
 
@@ -357,21 +353,20 @@ let animProgress = 0; // from 0 to 1
 let initAngle = 0;
 let targetAngle = 3;
 
-staticDrawer.addDrawing(new Radius(Math.PI / 4, 'black', 2));
-
 // END TESTING
 
-function loop() {
+function mainLoop() {
     ctx.clearRect(0, 0, canvWidth, canvHeight); // Clear the canvas
     resizeCanvas();
+    let animSpeed = document.getElementById("speedInput").value; // Get the speed from the input
     drawGrid(canvas, GRID_FREQUENCY, 'lightgray'); // Draw the grid
     drawGrid(canvas, 0, 'black'); // Draw the main grid lines
-    staticDrawer.draw(canvas); // Draw static drawings
+    drawRadius(canvas, document.getElementById("angleInput").value * (Math.PI / 180), 'red'); // Draw the radius at the specified angle
     drawRadius(canvas, angle, 'red', 2); 
 
     
     if (startAnim) {
-        animProgress += ANIM_SPEED * ANIM_ANGLE_INC;
+        animProgress += animSpeed * ANIM_ANGLE_INC;
         if (animProgress >= 1) {
             animProgress = 0;
             startAnim = false;
@@ -385,11 +380,11 @@ function loop() {
     drawCircleAtCentre(canvas, 'blue', 2, 0, angle % (2 * Math.PI)); // Draw the circle with the current angle
     
     if (!paused) {
-        angle += ANIM_SPEED * ANIM_ANGLE_INC; // Animation angle
-        animManager.loopManager();
+        angle += animSpeed * ANIM_ANGLE_INC; // Animation angle
+        animManager.loopManager(animSpeed);
     }
     else {
-        animManager.drawManager(); 
+        animManager.drawManager(animSpeed);
     }
     
 }
@@ -398,13 +393,13 @@ function loop() {
 let testInitAngle = 0;
 let testTargetAngle = Math.PI * 1.5;
 let testSpeed = 0.5;
-let testAnim1 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "red");
-let testAnim2 = new RadiusAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "red");
-let testAnim3 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, testSpeed, "red", 0.1);
+let testAnim1 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, "red");
+let testAnim2 = new RadiusAnimation(canvas, testInitAngle, testTargetAngle, "red");
+let testAnim3 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, "red", 0.1);
 
 let testAnimGroup = new AnimGroup([testAnim1, testAnim2, testAnim3]);
 animManager.addAnim(testAnimGroup);
 
 // ************** END TESTING **************
 
-setInterval(loop, REFRESH_RATE);
+setInterval(mainLoop, REFRESH_RATE);
