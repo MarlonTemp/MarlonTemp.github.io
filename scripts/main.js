@@ -1,4 +1,4 @@
-import * as cd from './CORDIC.js';
+//import * as cd from './CORDIC.js';
 
 
 // Settings
@@ -37,7 +37,7 @@ function drawRectAtCentre(canv, coord, dimensions, color = 'black') {
 
 // CIRCLES
 
-function drawCircleAtCentre(canv, color = 'black', lineWidth = 1) {
+function drawCircleAtCentre(canv, color = 'black', lineWidth = 1, startAngle = 0, targetAngle = 2 * Math.PI) {
     const canvCtx = canv.getContext('2d');
     let canvWidth = canv.width;
     let canvHeight = canv.height;
@@ -46,7 +46,7 @@ function drawCircleAtCentre(canv, color = 'black', lineWidth = 1) {
     canvCtx.lineWidth = lineWidth;
     
     canvCtx.beginPath();
-    canvCtx.arc(canvWidth / 2, canvHeight / 2, radius, 0, 2 * Math.PI);
+    canvCtx.arc(canvWidth / 2, canvHeight / 2, radius, startAngle, targetAngle, false);
     canvCtx.stroke();
 }
 
@@ -134,6 +134,81 @@ function animSmoothingFunction(progress) {
 }
 
 
+class RadiusAnimation {
+    canv;
+    startAngle;
+    targetAngle;
+    speed;
+    animProgress = 0;
+    animCompleted = false;
+
+    constructor(canv, startAngle, targetAngle, speed) {
+        this.canv = canv;
+        this.startAngle = startAngle;
+        this.targetAngle = targetAngle;
+        this.speed = speed;
+    }
+
+    loop() {
+        if (this.animProgress >= 1) {
+            this.animCompleted = true;
+        }
+        else {
+            this.animProgress += this.speed * ANIM_ANGLE_INC;
+            let curAngle = (this.targetAngle * animSmoothingFunction(this.animProgress)) + this.startAngle;
+            drawRadius(this.canv, curAngle, 'red', 2);
+        }
+    
+    }
+}
+
+class AnimGroup {
+    animations = [];
+
+    constructor(animations) {
+        this.animations = animations;
+    }
+
+    loop() {
+        for (let i = 0; i < this.animations.length; i++) {
+            this.animations[i].loop();
+            if (this.animations[i].animCompleted) {
+                this.animations.splice(i, 1); // Remove the completed animation
+                i--; // Adjust index after removal
+            }
+        }
+    }
+}
+
+class AnimManager {
+    static queuedAnims = [];
+
+
+    static loopManager() {
+        
+        if (this.queuedAnims.length > 0) {
+            console.log(this.queuedAnims);
+            this.queuedAnims[0].loop();
+            if (this.queuedAnims[0].animCompleted) {
+                this.queuedAnims.splice(0, 1); // Remove the completed animation
+                
+            }
+        }
+    }
+}
+
+// Button and event listeners
+
+function beginAnim(event) {
+    event.preventDefault(); // Prevent form submission
+    let anim = new RadiusAnimation(canvas, initAngle, targetAngle, ANIM_SPEED);
+    AnimManager.queuedAnims.push(anim);
+}
+
+document.getElementById("startAnimBtn").addEventListener("click", beginAnim);
+
+// END BUTTONS
+
 // Main loop
 let angle = 0;
 let startAnim = false;
@@ -160,6 +235,8 @@ function loop() {
         curAngle = (targetAngle * animSmoothingFunction(animProgress)) + initAngle; 
         drawRadius(canvas, curAngle, 'red', 2);
     }
+
+    AnimManager.loopManager();
 
 
     drawCircleAtCentre(canvas, 'darkblue', 2);
