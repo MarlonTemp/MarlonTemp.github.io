@@ -37,16 +37,16 @@ function drawRectAtCentre(canv, coord, dimensions, color = 'black') {
 
 // CIRCLES
 
-function drawCircleAtCentre(canv, color = 'black', lineWidth = 1, startAngle = 0, targetAngle = 2 * Math.PI) {
+function drawCircleAtCentre(canv, color = 'black', lineWidth = 1, startAngle = 0, targetAngle = 2 * Math.PI, size = 1, anticlockwise = true) {
     const canvCtx = canv.getContext('2d');
     let canvWidth = canv.width;
     let canvHeight = canv.height;
-    let radius = Math.min(canvWidth, canvHeight) * CIRCLE_RAD_SIZE;
+    let radius = Math.min(canvWidth, canvHeight) * CIRCLE_RAD_SIZE * size;
     canvCtx.strokeStyle = color;
     canvCtx.lineWidth = lineWidth;
     
     canvCtx.beginPath();
-    canvCtx.arc(canvWidth / 2, canvHeight / 2, radius, startAngle, targetAngle, false);
+    canvCtx.arc(canvWidth / 2, canvHeight / 2, radius, -startAngle, -targetAngle, anticlockwise);
     canvCtx.stroke();
 }
 
@@ -134,6 +134,7 @@ function animSmoothingFunction(progress) {
 }
 
 
+// Have this animation extend a base animation class
 class RadiusAnimation {
     canv;
     startAngle;
@@ -142,11 +143,12 @@ class RadiusAnimation {
     animProgress = 0;
     animCompleted = false;
 
-    constructor(canv, startAngle, targetAngle, speed) {
+    constructor(canv, startAngle, targetAngle, speed, color = 'black') {
         this.canv = canv;
         this.startAngle = startAngle;
         this.targetAngle = targetAngle;
         this.speed = speed;
+        this.color = color;
     }
 
     loop() {
@@ -156,9 +158,34 @@ class RadiusAnimation {
         else {
             this.animProgress += this.speed * ANIM_ANGLE_INC;
             let curAngle = (this.targetAngle * animSmoothingFunction(this.animProgress)) + this.startAngle;
-            drawRadius(this.canv, curAngle, 'red', 2);
+            drawRadius(this.canv, curAngle, this.color, 2);
         }
     
+    }
+}
+
+// Have this class extend a base animation class
+class CircleAnimation extends RadiusAnimation {
+    size;
+    anticlockwise;
+
+    constructor(canv, startAngle, targetAngle, speed, color = "black", size = 1, anticlockwise = true) {
+        super(canv, startAngle, targetAngle, speed, color);
+        this.size = size;
+        this.anticlockwise = anticlockwise;
+        if (this.anticlockwise == false) {
+            this.targetAngle = -this.targetAngle; 
+        }
+    }
+
+    loop() {
+        if (this.animProgress >= 1) {
+            this.animCompleted = true;
+        } else {
+            this.animProgress += this.speed * ANIM_ANGLE_INC;
+            let curAngle = (this.targetAngle * animSmoothingFunction(this.animProgress)) + this.startAngle;
+            drawCircleAtCentre(this.canv, this.color, 2, this.startAngle, curAngle, this.size, this.anticlockwise);
+        }
     }
 }
 
@@ -195,6 +222,10 @@ class AnimManager {
             }
         }
     }
+
+    static addAnim(anim) {
+        this.queuedAnims.push(anim);
+    }
 }
 
 // Button and event listeners
@@ -223,8 +254,6 @@ function loop() {
     drawGrid(canvas, 0, 'black'); // Draw the main grid lines
     drawRadius(canvas, angle, 'red', 2); 
     
-    drawRadiusToPoint(canvas, [1,1]);
-    
     if (startAnim) {
         animProgress += ANIM_SPEED * ANIM_ANGLE_INC;
         if (animProgress >= 1) {
@@ -236,11 +265,13 @@ function loop() {
         drawRadius(canvas, curAngle, 'red', 2);
     }
 
-    AnimManager.loopManager();
+    
 
-
-    drawCircleAtCentre(canvas, 'darkblue', 2);
+    drawCircleAtCentre(canvas, 'darkgreen', 2, 0, Math.PI * 2); // Draw the circle with the current angle
+    drawCircleAtCentre(canvas, 'blue', 2, 0, angle % (2 * Math.PI)); // Draw the circle with the current angle
     angle += ANIM_SPEED * ANIM_ANGLE_INC; // Animation angle
+
+    AnimManager.loopManager();
 }
 
 setInterval(loop, REFRESH_RATE);
