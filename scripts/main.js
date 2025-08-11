@@ -484,6 +484,6 @@ let testIterations = 20;
 console.log(cd.angleArrayToDegrees(cd.getSinCosUsedAngles(testAngle, testIterations)));
 */
 
-// ************** END TESTING **************
+// ************** END TESTING ***************
 
 setInterval(mainLoop, REFRESH_RATE);
