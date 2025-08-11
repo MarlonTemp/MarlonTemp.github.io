@@ -1,4 +1,4 @@
-//import * as cd from './CORDIC.js';
+import * as cd from './CORDIC.js';
 
 
 // Settings
@@ -198,7 +198,7 @@ class RadiusAnimation {
     }
 
     getCurAngle() {
-        return (this.targetAngle * animSmoothingFunction(this.animProgress)) + this.startAngle;
+        return ((this.targetAngle - this.startAngle) * animSmoothingFunction(this.animProgress)) + this.startAngle;
     }
 
     loop(speed = DEFAULT_ANIM_SPEED) {
@@ -233,23 +233,26 @@ class CircleAnimation extends RadiusAnimation {
         this.size = size;
         this.anticlockwise = anticlockwise;
         if (this.anticlockwise == false) {
-            this.targetAngle = -this.targetAngle; 
+            let temp = this.startAngle;
+            this.startAngle = this.targetAngle;
+            this.targetAngle = temp; 
         }
     }
 
     loop(speed = DEFAULT_ANIM_SPEED) {
         if (this.animProgress >= 1) {
             this.animCompleted = true;
-        } else {
+        } 
+        else {
             this.animProgress += speed * ANIM_ANGLE_INC;
             let curAngle = this.getCurAngle();
-            drawCircleAtCentre(this.canv, this.color, 2, this.startAngle, curAngle, this.size, this.anticlockwise);
+            drawCircleAtCentre(this.canv, this.color, 2, this.startAngle, curAngle, this.size);
         }
     }
 
     draw() {
         let curAngle = this.getCurAngle();
-        drawCircleAtCentre(this.canv, this.color, 2, this.startAngle, curAngle, this.size, this.anticlockwise);
+        drawCircleAtCentre(this.canv, this.color, 2, this.startAngle, curAngle, this.size);
     }
 }
 
@@ -317,6 +320,10 @@ class AnimManager {
         anim.resetAnim(); 
         this.queuedAnims.push(anim);
     }
+
+    clearAnims() {
+        this.queuedAnims = [];
+    }
 }
 // *********** END ANIMATIONS ***********
 
@@ -325,7 +332,6 @@ class AnimManager {
 
 function beginAnim(event) {
     event.preventDefault(); // Prevent form submission
-    paused = false;
     let anim = new RadiusAnimation(canvas, initAngle, targetAngle);
     animManager.queuedAnims.push(anim);
 }
@@ -333,12 +339,77 @@ function beginAnim(event) {
 function pauseAnim(event) {
     event.preventDefault(); 
     paused = !paused;
+    document.getElementById("pauseBtn").innerText = paused ? "Resume" : "Pause";
 }
 
-document.getElementById("startAnimBtn").addEventListener("click", beginAnim);
+function stopAnim(event) {
+    event.preventDefault(); 
+    animManager.clearAnims();
+    paused = false;
+    document.getElementById("pauseBtn").innerText = "Pause";
+}
+
+function queueAnim(event) {
+    event.preventDefault();
+    const INIT_ANGLE = 0;
+    let angle = parseFloat(document.getElementById("angleInput").value);
+    console.log(angle);
+    let iterations = parseInt(document.getElementById("iterations").value);
+    let angles = cd.getSinCosUsedAngles(angle, iterations);
+    let result = cd.getSinCosDegrees(angle, iterations);
+    let sinOutput = document.getElementById("sinValue");
+    let cosOutput = document.getElementById("cosValue");
+    sinOutput.innerText = result[1].toFixed(4);
+    cosOutput.innerText = result[0].toFixed(4);
+
+    // Initial anim (starting from 0)
+    let outerCircleAnim = new CircleAnimation(canvas, INIT_ANGLE, angles[0], 'red');
+    let radiusAnim = new RadiusAnimation(canvas, INIT_ANGLE, angles[0], 'red');
+    let innerCircleAnim = new CircleAnimation(canvas, INIT_ANGLE, angles[0], 'red', 0.1);
+    let staticRadiusAnim;
+    let animGroup = new AnimGroup([outerCircleAnim, radiusAnim, innerCircleAnim]);
+    animManager.addAnim(animGroup);
+    
+    for (let i = 1; i < angles.length; i++) {
+        let anticlockwise = true;
+        let initAngle = angles[i - 1];
+        let targetAngle = angles[i];
+        
+        if (angles[i] < angles[i - 1]) {
+            anticlockwise = false;
+            /*
+            let temp = initAngle;
+            initAngle = targetAngle;
+            targetAngle = temp;
+            */
+        }
+
+        console.log("Iteration: ", i, initAngle, targetAngle, anticlockwise);
+            
+
+
+        outerCircleAnim = new CircleAnimation(canvas, initAngle, targetAngle, 'red', anticlockwise);
+        radiusAnim = new RadiusAnimation(canvas, initAngle, targetAngle, 'red');
+        innerCircleAnim = new CircleAnimation(canvas, initAngle, targetAngle, 'red', 0.1, anticlockwise);
+        staticRadiusAnim = new RadiusAnimation(canvas, angles[i - 1], angles[i - 1], 'black');
+        animGroup = new AnimGroup([outerCircleAnim, radiusAnim, innerCircleAnim, staticRadiusAnim]);
+        animManager.addAnim(animGroup);
+    }
+}
+
+document.getElementById("startAnimBtn").addEventListener("click", queueAnim);
 document.getElementById("pauseBtn").addEventListener("click", pauseAnim);
+document.getElementById("resetBtn").addEventListener("click", stopAnim);
 
 // ************* END BUTTONS ***************
+
+// ********* OTHER FUNCTIONALITY *********
+
+function setInputValues() {
+    document.getElementById("angleValue").innerText = parseFloat(document.getElementById("angleInput").value).toFixed(1);
+    document.getElementById("speedValue").innerText = parseFloat(document.getElementById("speedInput").value).toFixed(2);
+    document.getElementById("iterationsValue").innerText = document.getElementById("iterations").value;
+}
 
 // Main loop
 
@@ -347,38 +418,42 @@ let animManager = new AnimManager();
 let paused = false;
 
 // TESTING
-let angle = 0;
+let angle = 0; //TESTING ONLY
 let startAnim = false;
-let animProgress = 0; // from 0 to 1
+let animTestProgress = 0; // from 0 to 1
 let initAngle = 0;
-let targetAngle = 3;
+let targetAngle = Math.PI * 0.75;
 
 // END TESTING
 
 function mainLoop() {
     ctx.clearRect(0, 0, canvWidth, canvHeight); // Clear the canvas
     resizeCanvas();
+    setInputValues(); // Update input values
+
     let animSpeed = document.getElementById("speedInput").value; // Get the speed from the input
     drawGrid(canvas, GRID_FREQUENCY, 'lightgray'); // Draw the grid
     drawGrid(canvas, 0, 'black'); // Draw the main grid lines
-    drawRadius(canvas, document.getElementById("angleInput").value * (Math.PI / 180), 'red'); // Draw the radius at the specified angle
-    drawRadius(canvas, angle, 'red', 2); 
-
-    
-    if (startAnim) {
-        animProgress += animSpeed * ANIM_ANGLE_INC;
-        if (animProgress >= 1) {
-            animProgress = 0;
-            startAnim = false;
-        }
-
-        curAngle = (targetAngle * animSmoothingFunction(animProgress)) + initAngle; 
-        drawRadius(canvas, curAngle, 'red', 2);
-    }
-
+    staticDrawer.draw(canvas); // Draw static elements
+    drawRadius(canvas, document.getElementById("angleInput").value * (Math.PI / 180), 'lightblue'); // Draw the radius at the specified angle
     drawCircleAtCentre(canvas, 'darkgreen', 2, 0, Math.PI * 2); // Draw the circle with the current angle
-    drawCircleAtCentre(canvas, 'blue', 2, 0, angle % (2 * Math.PI)); // Draw the circle with the current angle
-    
+
+    /* TES ANIMATION
+    if (startAnim) {
+        animTestProgress += animSpeed * ANIM_ANGLE_INC;
+        if (animTestProgress >= 1) {
+            animTestProgress = 0;
+            startAnim = false;
+        }    
+        curAngle = (targetAngle * animSmoothingFunction(animTestProgress)) + initAngle;
+        drawRadius(canvas, curAngle, 'red', 2);
+
+    }
+        */
+
+    //drawRadius(canvas, angle, 'red', 2); 
+    //drawCircleAtCentre(canvas, 'blue', 2, 0, angle % (2 * Math.PI)); // Draw the circle with the current angle
+
     if (!paused) {
         angle += animSpeed * ANIM_ANGLE_INC; // Animation angle
         animManager.loopManager(animSpeed);
@@ -390,15 +465,24 @@ function mainLoop() {
 }
 
 // ************** TESTING **************
+/*
 let testInitAngle = 0;
 let testTargetAngle = Math.PI * 1.5;
-let testSpeed = 0.5;
 let testAnim1 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, "red");
 let testAnim2 = new RadiusAnimation(canvas, testInitAngle, testTargetAngle, "red");
 let testAnim3 = new CircleAnimation(canvas, testInitAngle, testTargetAngle, "red", 0.1);
 
+let testRadiusAnim = new RadiusAnimation(canvas, 0, testTargetAngle, "lightblue");
+animManager.addAnim(testRadiusAnim);
 let testAnimGroup = new AnimGroup([testAnim1, testAnim2, testAnim3]);
 animManager.addAnim(testAnimGroup);
+
+
+let testAngle = 25;
+let testIterations = 20;
+// console.log(cd.getSinCosUsedAngles(testAngle, testIterations)); 
+console.log(cd.angleArrayToDegrees(cd.getSinCosUsedAngles(testAngle, testIterations)));
+*/
 
 // ************** END TESTING **************
 

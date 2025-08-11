@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="styles/reset.css" type="text/css">
     <link rel="stylesheet" href="styles/main.css" type="text/css">
     <script type="module" src="scripts/CORDIC.js" defer></script>
-    <script src="scripts/main.js" defer></script>
+    <script type="module" src="scripts/main.js" defer></script>
 
     <title>Testing Canvas</title>
 </head>
@@ -18,21 +18,20 @@
         <main>
             <section id="canvasParent">
                 <canvas id="canvas" width="400" height="450" alt="Canvas for CORDIC demonstration of sin, cos and arctan">CORDIC trigonometry demonstration</canvas>
+                <div id="cordicOutput">
+                    <p>Sin value: <span id="sinValue">0</span></p>
+                    <p>Cos value: <span id="cosValue">0</span></p>
+                </div>
                 <form id="canvasForm">
-                    <label for="angleInput">Angle (degrees)</label>
-                    <br>
+                    <label for="angleInput">Angle (degrees): <span id="angleValue">0</span></label>
                     <input type="range" id="angleInput" value="0" min="0" max="360" step="7.5">
-                    <br>
-                    <label for="speedInput">Speed</label>
-                    <br>
+                    <label for="speedInput">Speed: <span id="speedValue">1</span></label>
                     <input type="range" id="speedInput" value="1" min="0.1" max="4" step="0.05" list="speedList">
-                    <br>
-                    <label for="iterations">Iterations</label>
-                    <br>
+                    <label for="iterations">Iterations: <span id="iterationsValue">10</span></label>
                     <input type="range" id="iterations" value="10" min="1" max="20" step="1">
-                    <br>
                     <button id="startAnimBtn">Start Animation</button>
                     <button id="pauseBtn">Pause</button>
+                    <button id="resetBtn">Reset</button>
                 </form>
             </section>
         </main>

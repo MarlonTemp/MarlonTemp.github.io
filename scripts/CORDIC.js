@@ -54,7 +54,7 @@ export function getSinCosDegrees(angle, iterations) {
     targetAngle = targetAngle * (Math.PI / 180); // convert to radians
 
     for (let i = 0; i < iterations; i++) {
-        if (totalAngle < targetAngle) {
+        if (totalAngle <= targetAngle) {
             totalAngle += angles[i];
             let xj = xi - (yi * (Math.pow(2, -i)));
             let yj = yi + (xi * (Math.pow(2, -i)));
@@ -75,7 +75,48 @@ export function getSinCosDegrees(angle, iterations) {
 }
 
 export function getSinCosUsedAngles(angle, iterations) {
+    let totalAngle = 0;
+    let angles = getAtanAngles(iterations);
+    let angleArray = [];
+
+    let targetAngle = angle % 360;
     
+    if (targetAngle < 0) {
+        targetAngle += 360;
+    }
+
+    if (targetAngle > 180) {
+        targetAngle -= 180;
+    }
+
+    if (targetAngle > 90) {
+        targetAngle = 180 - targetAngle;
+    } 
+
+    if (targetAngle > 90) {
+        targetAngle = 180 - targetAngle;
+    }
+
+    targetAngle = targetAngle * (Math.PI / 180); // convert to radians
+
+    for (let i = 0; i < iterations; i++) {
+        if (totalAngle <= targetAngle) {
+            totalAngle += angles[i];
+        }
+        else {
+            totalAngle -= angles[i];
+        }
+        angleArray.push(totalAngle);
+    }
+
+    return angleArray;
+}
+
+export function angleArrayToDegrees(angleArray) {
+    for (let i = 0; i < angleArray.length; i++) {
+        angleArray[i] = angleArray[i] * (180 / Math.PI); 
+    }
+    return angleArray;
 }
 
 export function getSinCos(angle, iterations, angleType = 'degrees') {
