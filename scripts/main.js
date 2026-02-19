@@ -392,7 +392,7 @@ function queueAnim(event) {
         radiusAnim = new RadiusAnimation(canvas, initAngle, targetAngle, 'red');
         innerCircleAnim = new CircleAnimation(canvas, initAngle, targetAngle, 'red', 0.1, anticlockwise);
         staticRadiusAnim = new RadiusAnimation(canvas, angles[i - 1], angles[i - 1], 'black');
-        animGroup = new AnimGroup([outerCircleAnim, radiusAnim, innerCircleAnim, staticRadiusAnim]);
+        animGroup = new AnimGroup([outerCircleAnim, innerCircleAnim, staticRadiusAnim, radiusAnim]);
         animManager.addAnim(animGroup);
     }
 }
